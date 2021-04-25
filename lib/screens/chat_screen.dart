@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:group_chat_app/widgets/message_bubble.dart';
 
 import '../consts.dart';
 
@@ -12,6 +13,7 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
+  final messageTextController = TextEditingController();
   final _firestore = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;
   User loggedInUser;
@@ -54,9 +56,8 @@ class _ChatScreenState extends State<ChatScreen> {
           IconButton(
               icon: Icon(Icons.logout),
               onPressed: () {
-                messagesStream();
-                // _auth.signOut();
-                //   Navigator.pop(context);
+                _auth.signOut();
+                  Navigator.pop(context);
               }),
         ],
         title: Text('⚡️Chat'),
@@ -68,25 +69,39 @@ class _ChatScreenState extends State<ChatScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             StreamBuilder<QuerySnapshot>(
-              stream: _firestore.collection('messages').snapshots(),
+              stream: _firestore.collection('messages').orderBy('time').snapshots(),
               builder: (context, snapshot) {
-                List<Text> messageWidgets = [];
+                List<MessageBubble> messageBubbles = [];
                 if (!snapshot.hasData) {
                   return Center(
                     child: CircularProgressIndicator(),
                   );
                 }
-                final messages = snapshot.data.docs;
+                final messages = snapshot.data.docs.reversed;
                 for (var message in messages) {
                   final messageData = message.data();
                   final messageText = messageData['text'];
                   final messageSender = messageData['sender'];
-                  final messageWidget =
-                  Text('$messageSender said $messageText');
-                  messageWidgets.add(messageWidget);
+                  final sentTime = messageData['time'];
+
+                  final currentUser = loggedInUser.email;
+
+                  if(currentUser == messageSender){
+
+                  }
+
+                  final messageBubble = MessageBubble(sender: messageSender, messageText: messageText,
+                    sentTime: sentTime, isMe:
+                    currentUser == messageSender
+                    ,);
+                  messageBubbles.add(messageBubble);
                 }
-                return Column(
-                  children: messageWidgets,
+                return Expanded(
+                  child: ListView(
+                    reverse: true,
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 20),
+                    children: messageBubbles,
+                  ),
                 );
               },
             ),
@@ -97,6 +112,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 children: <Widget>[
                   Expanded(
                     child: TextField(
+                      controller: messageTextController,
                       onChanged: (value) {
                         message = value;
                       },
@@ -105,9 +121,10 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                   FlatButton(
                     onPressed: () {
+                      messageTextController.clear();
                       _firestore
                           .collection('messages')
-                          .add({'text': message, 'sender': loggedInUser.email});
+                          .add({'text': message, 'sender': loggedInUser.email, 'time': DateTime.now()});
                     },
                     child: Text(
                       'Send',
