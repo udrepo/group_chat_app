@@ -2,7 +2,7 @@ import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:flutter/material.dart';
 import 'package:group_chat_app/screens/login_screen.dart';
 import 'package:group_chat_app/screens/registration_screen.dart';
-import 'package:group_chat_app/widgets/LoginButton.dart';
+import 'package:group_chat_app/widgets/login_button.dart';
 
 class WelcomeScreen extends StatefulWidget {
   static const routeName = '/';

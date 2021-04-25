@@ -37,6 +37,14 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  void messagesStream() async {
+    await _firestore.collection('messages').snapshots().forEach((snapshot) {
+      for (var message in snapshot.docs) {
+        print(message.data());
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -46,8 +54,9 @@ class _ChatScreenState extends State<ChatScreen> {
           IconButton(
               icon: Icon(Icons.logout),
               onPressed: () {
-                _auth.signOut();
-                  Navigator.pop(context);
+                messagesStream();
+                // _auth.signOut();
+                //   Navigator.pop(context);
               }),
         ],
         title: Text('⚡️Chat'),
@@ -58,6 +67,29 @@ class _ChatScreenState extends State<ChatScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
+            StreamBuilder<QuerySnapshot>(
+              stream: _firestore.collection('messages').snapshots(),
+              builder: (context, snapshot) {
+                List<Text> messageWidgets = [];
+                if (!snapshot.hasData) {
+                  return Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
+                final messages = snapshot.data.docs;
+                for (var message in messages) {
+                  final messageData = message.data();
+                  final messageText = messageData['text'];
+                  final messageSender = messageData['sender'];
+                  final messageWidget =
+                  Text('$messageSender said $messageText');
+                  messageWidgets.add(messageWidget);
+                }
+                return Column(
+                  children: messageWidgets,
+                );
+              },
+            ),
             Container(
               decoration: kMessageContainerDecoration,
               child: Row(
@@ -73,10 +105,9 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                   FlatButton(
                     onPressed: () {
-                      _firestore.collection('messages').add({
-                        'text' : message,
-                        'sender' : loggedInUser.email
-                      });
+                      _firestore
+                          .collection('messages')
+                          .add({'text': message, 'sender': loggedInUser.email});
                     },
                     child: Text(
                       'Send',
